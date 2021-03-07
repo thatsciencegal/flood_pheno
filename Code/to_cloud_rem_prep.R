@@ -4,8 +4,8 @@
 library(raster)
 
 ## Set the in and out directories
-in.dir <- "H:/SASA-PEAN/Raw"
-out.dir <- "H:/SASA-PEAN/Raw/Stacked"
+in.dir <- "H:/SASA-PEAN/Raw/"
+out.dir <- "H:/SASA-PEAN/Raw/Stacked/"
 
 ## List the files that you are using
 l8.files <- list.files(in.dir, pattern="TIF$",full.names = TRUE)
@@ -33,5 +33,17 @@ date.stack <- function(day){
 ## Read in each raster stack and save it as a single tif file
 for(i in 1:length(l8.splt.date)){
   rast <- date.stack(l8.splt.date[i])
-  writeRaster(rast,paste0(out.dir,day,".tif"),overwrite=TRUE)
+  writeRaster(rast,paste0(out.dir,l8.splt.date[i],".tif"),overwrite=TRUE)
 }
+
+## Upload Mapbiomas data for water mask
+wtr.msk <- stack("D:/Dropbox/Dissertation/Chapter3/Data/MapbiomasVeg/sasa_pean_wtr_msk.tif")[[34]]
+
+## Reclassify water to 0 to create water mask
+rcl <- c(33,0)
+rcl.mtx <- matrix(rcl,ncol=2,byrow=TRUE)
+
+wtr.msk.rc<-reclassify(wtr.msk,rcl.mtx)
+
+## Write out water mask for year of interest
+writeRaster(wtr.msk.rc,"./Data/MapbiomasVeg/sasa_pean_wtr_msk_2018.tif")
