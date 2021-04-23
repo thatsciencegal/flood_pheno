@@ -117,10 +117,10 @@ sav.sdm3 <- sav.sdm %>% filter(date > as.Date("2002-07-01") & date < as.Date("20
 sav.sdm4 <- sav.sdm %>% filter(date > as.Date("2013-07-01")) %>% pivot_wider(names_from=index,values_from=value)
 
 ##Discrete Fourier Transform
-calc.fft <- function(tmp){
+calc.fft <- function(tmp,a){
   ##Function to calculate fast Fourier and convert to inverse Fourier
   fft.nums <- fft(tmp)
-  fft.nums[36:(length(fft.nums)-35)] <- 0+0i
+  fft.nums[(a+1):(length(fft.nums)-a)] <- 0+0i
   ift.nums <- fft(fft.nums,inverse=TRUE)/length(fft.nums)
   return(Re(ift.nums))
 }
@@ -286,6 +286,8 @@ for.up.min <- for.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>%
   filter(value==min(value)) %>% 
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
+
+for.up.min$prepos <- fct_relevel(for.up.min$prepos,c("Pre","Post"))
  
 
 for.up.max <- for.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
@@ -295,37 +297,54 @@ for.up.max <- for.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>%
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
 
+for.up.max$prepos <- fct_relevel(for.up.max$prepos,c("Pre","Post"))
+
 ggplot(for.up.min)+
   geom_density(aes(x=doy.x,fill=index),position="identity",alpha=0.7)+
+  facet_wrap(~prepos)+
   scale_fill_manual(values=c("#7fcdbb","#225ea8","#edf8b1"),
                     labels=c("EVI","NDWI","SAVI"))+
   labs(x="Day of year",y="Count",fill="VI")+
-  ggtitle("DOY of minimum VI, upstream forest")
+  ggtitle("DOY of minimum VI, upstream forest")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
 
 ggplot(for.up.max)+
   geom_density(aes(x=doy.x,fill=index),position="identity",alpha=0.7)+
+  facet_wrap(~prepos)+
   scale_fill_manual(values=c("#7fcdbb","#225ea8","#edf8b1"),
                     labels=c("EVI","NDWI","SAVI"))+
   labs(x="Day of year",y="Count",fill="VI")+
-  ggtitle("DOY of maximum VI, upstream forest")
+  ggtitle("DOY of maximum VI, upstream forest")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
-ggplot(for.up.min)+
+
+p1 <- ggplot(for.up.min)+
   geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
-                    labels=c("Pre","Post"))+
-  labs(x="Vegetation index",y="Day of year",fill="Dam status")+
+  scale_fill_manual(values=c("#7fcdbb","#edf8b1"))+
+  labs(x="",y="Day of year",fill="Dam status")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of minimum VI, upstream forest")
+  ylim(c(0,365))+
+  ggtitle("(A) Min VI, upstream forest")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.position = "none")
 
-ggplot(for.up.max)+
+
+p2 <- ggplot(for.up.max)+
   geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
-                    labels=c("Pre","Post"))+
-  labs(x="Vegetation index",y="Day of year",fill="Dam status")+
+  scale_fill_manual(values=c("#7fcdbb","#edf8b1"))+
+  labs(x="",y="",fill="Dam status")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of minimum VI, upstream forest")
+  ylim(c(0,365))+
+  ggtitle("(B) Max VI, upstream forest")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
 
 sav.up.min <- sav.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
   pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
@@ -334,6 +353,7 @@ sav.up.min <- sav.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>%
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
 
+sav.up.min$prepos <- fct_relevel(sav.up.min$prepos,c("Pre","Post"))
 
 sav.up.max <- sav.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
   pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
@@ -342,23 +362,33 @@ sav.up.max <- sav.up.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>%
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
 
-ggplot(sav.up.min)+
-  geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
-                    labels=c("Pre","Post"))+
-  labs(x="Vegetation index",y="Day of year",fill="Dam status")+
-  scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
-                   labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of minimum VI, upstream savanna")
+sav.up.max$prepos <- fct_relevel(sav.up.max$prepos,c("Pre","Post"))
 
-ggplot(sav.up.max)+
+p3 <- ggplot(sav.up.min)+
+  geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
+  scale_fill_manual(values=c("#7fcdbb","#edf8b1"))+
+  labs(x="",y="Day of year",fill="Dam status")+
+  scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
+                   labels=c("EVI","NDWI","SAVI"))+
+  ylim(c(0,365))+
+  ggtitle("(A) Min VI, upstream savanna")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.position = "none")
+
+
+p4 <- ggplot(sav.up.max)+
   geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
   scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
                     labels=c("Pre","Post"))+
-  labs(x="Vegetation index",y="Day of year",fill="Dam status")+
+  labs(x="",y="",fill="Dam status")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of maximum VI, upstream savanna")
+  ylim(c(0,365))+
+  ggtitle("(B) Max VI, upstream savanna")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
 
 
 for.sdm.min <- for.sdm.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>%  
@@ -368,6 +398,7 @@ for.sdm.min <- for.sdm.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
 
+for.sdm.min$prepos <- fct_relevel(for.sdm.min$prepos,c("Pre","Post"))
 
 for.sdm.max <- for.sdm.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
   pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
@@ -376,37 +407,30 @@ for.sdm.max <- for.sdm.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
 
-ggplot(for.sdm.min)+
-  geom_density(aes(x=doy.x,fill=index),position="identity",alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#225ea8","#edf8b1"),
-                    labels=c("EVI","NDWI","SAVI"))+
-  labs(x="Day of year",y="Count",fill="VI")+
-  ggtitle("DOY of minimum VI, upstream forest")
+for.sdm.max$prepos <- fct_relevel(for.sdm.max$prepos,c("Pre","Post"))
 
-ggplot(for.sdm.max)+
-  geom_density(aes(x=doy.x,fill=index),position="identity",alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#225ea8","#edf8b1"),
-                    labels=c("EVI","NDWI","SAVI"))+
-  labs(x="Day of year",y="Count",fill="VI")+
-  ggtitle("DOY of maximum VI, upstream forest")
-
-ggplot(for.sdm.min)+
-  geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
-                    labels=c("Pre","Post"))+
+p5 <- ggplot(for.sdm.min)+
+  geom_boxplot(aes(x=index,y=doy.x,fill=prepos))+
+  scale_fill_manual(values=c("#7fcdbb","#edf8b1"))+
   labs(x="Vegetation index",y="Day of year",fill="Dam status")+
+  ggtitle("(C) Min VI, downstream forest")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of minimum VI, downstream forest")
+  ylim(c(0,365))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.position = "none")
 
-ggplot(for.sdm.max)+
-  geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
-  scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
-                    labels=c("Pre","Post"))+
-  labs(x="Vegetation index",y="Day of year",fill="Dam status")+
+p6 <- ggplot(for.sdm.max)+
+  geom_boxplot(aes(x=index,y=doy.x,fill=prepos))+
+  scale_fill_manual(values=c("#7fcdbb","#edf8b1"))+
+  labs(x="Vegetation index",y="",fill="Dam status")+
+  ggtitle("(D) Max VI, downstream forest")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of minimum VI, downstream forest")
+  ylim(c(0,365))+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
 
 sav.sdm.min <- sav.sdm.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
   pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
@@ -423,23 +447,32 @@ sav.sdm.max <- sav.sdm.wide %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>
   mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
                           WtrYr >= 1998 ~ "Post"))
 
-ggplot(sav.sdm.min)+
+p7 <- ggplot(sav.sdm.min)+
   geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
   scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
                     labels=c("Pre","Post"))+
   labs(x="Vegetation index",y="Day of year",fill="Dam status")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of minimum VI, downstream savanna")
+  ylim(c(0,365))+
+  ggtitle("(C) Min VI, downstream savanna")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"),
+        legend.position="none")
 
-ggplot(sav.sdm.max)+
+
+p8 <- ggplot(sav.sdm.max)+
   geom_boxplot(aes(x=index,y=doy.x,fill=prepos),alpha=0.7)+
   scale_fill_manual(values=c("#7fcdbb","#edf8b1"),
                     labels=c("Pre","Post"))+
-  labs(x="Vegetation index",y="Day of year",fill="Dam status")+
+  labs(x="Vegetation index",y="",fill="Dam status")+
   scale_x_discrete(breaks=c("evi_ift","ndwi_ift","savi_ift"),
                    labels=c("EVI","NDWI","SAVI"))+
-  ggtitle("DOY of maximum VI, downstream savanna")
+  ylim(c(0,365))+
+  ggtitle("(D) Max VI, downstream savanna")+
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
 
 f.up.min.mod <- anova(lm(doy.x~prepos+index,data=for.up.min))
 f.up.max.mod <- anova(lm(doy.x~prepos+index,data=for.up.max))
@@ -452,6 +485,184 @@ f.sdm.max.mod <- anova(lm(doy.x~prepos+index,data=for.sdm.max))
 
 s.sdm.min.mod <- anova(lm(doy.x~prepos+index,data=sav.sdm.min))
 s.sdm.max.mod <- anova(lm(doy.x~prepos+index,data=sav.sdm.max))
+
+## Split between pre and post
+for.up.pre <- for.up.wide %>% filter(WtrYr < 1998) 
+for.up.post <- for.up.wide %>% filter(WtrYr >= 1998)
+sav.up.pre <- sav.up.wide %>% filter(WtrYr < 1998)
+sav.up.post <- sav.up.wide %>% filter(WtrYr >= 1998)
+
+for.sdm.pre <- for.sdm.wide %>% filter(WtrYr < 1998)
+for.sdm.post <- for.sdm.wide %>% filter(WtrYr >= 1998)
+sav.sdm.pre <- sav.sdm.wide %>% filter(WtrYr < 1998)
+sav.sdm.post <- sav.sdm.wide %>% filter(WtrYr >= 1998)
+
+for.up.pre$ndwi_ift <- calc.fft(for.up.pre$NDWI,a=26)
+for.up.pre$evi_ift <- calc.fft(for.up.pre$EVI,a=26)
+for.up.pre$savi_ift <- calc.fft(for.up.pre$SAVI,a=26)
+
+sav.up.pre$ndwi_ift <- calc.fft(sav.up.pre$NDWI,a=26)
+sav.up.pre$evi_ift <- calc.fft(sav.up.pre$EVI,a=26)
+sav.up.pre$savi_ift <- calc.fft(sav.up.pre$SAVI,a=26)
+
+for.up.post$ndwi_ift <- calc.fft(for.up.post$NDWI,a=38)
+for.up.post$evi_ift <- calc.fft(for.up.post$EVI,a=38)
+for.up.post$savi_ift <- calc.fft(for.up.post$SAVI,a=38)
+
+sav.up.post$ndwi_ift <- calc.fft(sav.up.post$NDWI,a=38)
+sav.up.post$evi_ift <- calc.fft(sav.up.post$EVI,a=38)
+sav.up.post$savi_ift <- calc.fft(sav.up.post$SAVI,a=38)
+
+for.sdm.pre$ndwi_ift <- calc.fft(for.sdm.pre$NDWI,a=26)
+for.sdm.pre$evi_ift <- calc.fft(for.sdm.pre$EVI,a=26)
+for.sdm.pre$savi_ift <- calc.fft(for.sdm.pre$SAVI,a=26)
+
+sav.sdm.pre$ndwi_ift <- calc.fft(sav.sdm.pre$NDWI,a=26)
+sav.sdm.pre$evi_ift <- calc.fft(sav.sdm.pre$EVI,a=26)
+sav.sdm.pre$savi_ift <- calc.fft(sav.sdm.pre$SAVI,a=26)
+
+for.sdm.post$ndwi_ift <- calc.fft(for.sdm.post$NDWI,a=38)
+for.sdm.post$evi_ift <- calc.fft(for.sdm.post$EVI,a=38)
+for.sdm.post$savi_ift <- calc.fft(for.sdm.post$SAVI,a=38)
+
+sav.sdm.post$ndwi_ift <- calc.fft(sav.sdm.post$NDWI,a=38)
+sav.sdm.post$evi_ift <- calc.fft(sav.sdm.post$EVI,a=38)
+sav.sdm.post$savi_ift <- calc.fft(sav.sdm.post$SAVI,a=38)
+
+## Find annual min/max
+for.up.pre.max <- for.up.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.up.pre.min <- for.up.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.up.pre.max <- sav.up.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.up.pre.min <- sav.up.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.sdm.pre.max <- for.sdm.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.sdm.pre.min <- for.sdm.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.sdm.pre.max <- sav.sdm.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.sdm.pre.min <- sav.sdm.pre %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.up.post.max <- for.up.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.up.post.min <- for.up.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.up.post.max <- sav.up.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.up.post.min <- sav.up.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.sdm.post.max <- for.sdm.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.sdm.post.min <- for.sdm.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.sdm.post.max <- sav.sdm.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==max(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+sav.sdm.post.min <- sav.sdm.post %>% select(doy.x,ndwi_ift,evi_ift,savi_ift,WtrYr) %>% 
+  pivot_longer(cols=!c(doy.x,WtrYr),names_to="index",values_to="value") %>% 
+  group_by(WtrYr,index) %>% 
+  filter(value==min(value)) %>% 
+  mutate(prepos=case_when(WtrYr < 1998 ~ "Pre",
+                          WtrYr >= 1998 ~ "Post"))
+
+for.up.all.min <- rbind(for.up.pre.min,for.up.post.min)
+for.up.all.max <- rbind(for.up.pre.max,for.up.post.max)
+sav.up.all.min <- rbind(sav.up.pre.min,sav.up.post.min)
+sav.up.all.max <- rbind(sav.up.pre.max,sav.up.post.max)
+for.sdm.all.min <- rbind(for.sdm.pre.min,for.sdm.post.min)
+for.sdm.all.max <- rbind(for.sdm.pre.max,for.sdm.post.max)
+sav.sdm.all.min <- rbind(sav.sdm.pre.min,sav.sdm.post.min)
+sav.sdm.all.max <- rbind(sav.sdm.pre.max,sav.sdm.post.max)
+
+anova(lm(doy.x~prepos+index,data=for.up.all.min))
+anova(lm(doy.x~prepos+index,data=for.up.all.max))
+
+anova(lm(doy.x~prepos+index,data=sav.up.all.min))
+anova(lm(doy.x~prepos+index,data=sav.up.all.max))
+
+anova(lm(doy.x~prepos+index,data=for.sdm.all.min))
+anova(lm(doy.x~prepos+index,data=for.sdm.all.max))
+
+anova(lm(doy.x~prepos+index,data=sav.sdm.all.min))
+anova(lm(doy.x~prepos+index,data=sav.sdm.all.max))
+
 ## Raw data plots
 p1<-ggplot(dfs[[1]],aes(x=date,y=value))+
   geom_line(aes(colour=index))+
